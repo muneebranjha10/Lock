@@ -35,3 +35,13 @@ Disable One UI App Lock Lab in LSPosed Manager and reboot. Uninstall the APK whe
 The v0.2 module's supported-item hooks were insufficient to display the launcher padlock. Inspection of the supplied One UI Home APK identified `GlobalOptionView.isAppLockSupported(PopupAnchorInfo)` as a separate title-row gate reached from `addSideLockButton(...)`. The v0.3 build adds `LauncherGateHook` for that gate, bundled from `overrides/LauncherGateHook.java` during the GitHub build. Download [v0.3 debug APK](releases/Lock-v0.3-launcher-debug.apk).
 
 This is a **compiled but device-untested** experiment, not a verified working or secure native App Lock. Test with a non-sensitive app. In LSPosed, scope One UI Home plus one test app (do not scope System Framework or SystemUI), then reboot. If the padlock is still missing, share **LSPosed module logs** containing `AppLockLab v0.3` so we can distinguish scope failures from Samsung's launcher runtime gate. The app protection mechanism is a best-effort activity guard and is not suitable for protecting private information.
+
+## v0.4 — diagnosed Xposed API signature fix (2026-11-22)
+
+The supplied KernelSU bug report (Nov 22, 2026, 13:59:15 local) exposed a genuine LSPosed `NoSuchMethodError` in the scoped WhatsApp process: our self-written compile-only stubs declared `XposedHelpers.findAndHookMethod(...)` as returning `void`. The real Xposed API returns `XC_MethodHook.Unhook`. Consequently the previous experimental APK could compile while the hook would fail when invoked at runtime.
+
+v0.4 replaces those compile-time stubs with correctly typed method signatures, validates the descriptors with `javap` during GitHub Actions, and logs when App Lock is loaded into One UI Home or WhatsApp. **The GitHub build and descriptor check passed. This does not verify on-device launcher integration or app security.**
+
+[Download v0.4 APK](releases/Lock-v0.4-api-debug.apk)
+
+For testing, disable/uninstall v0.3 (Actions debug keys are not stable between runs), install v0.4, enable its LSPosed scope for One UI Home and **one non-sensitive test app**, and reboot. Long-press that app; if the padlock remains absent, export **LSPosed Modules Logs** and search for `AppLockLab v0.4`. When the log does not show App Lock loading in the launcher, investigate LSPosed scope/restart before changing more Samsung hooks. Do not treat this as a reliable privacy or security product.
