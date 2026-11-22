@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_lock_monitor_description">Detects which app opens to prompt for authentication. It does not inspect screen contents. Experimental protection, not native Samsung system security.</string>
+</resources>
