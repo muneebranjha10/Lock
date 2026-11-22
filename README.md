@@ -29,3 +29,9 @@ The v0.1 build omitted LSPosed's recommended scope declaration. Version 0.2 adds
 
 ## Rollback
 Disable One UI App Lock Lab in LSPosed Manager and reboot. Uninstall the APK when no longer needed.
+
+## v0.3 native launcher padlock experiment (2026-11-22)
+
+The v0.2 module's supported-item hooks were insufficient to display the launcher padlock. Inspection of the supplied One UI Home APK identified `GlobalOptionView.isAppLockSupported(PopupAnchorInfo)` as a separate title-row gate reached from `addSideLockButton(...)`. The v0.3 build adds `LauncherGateHook` for that gate, bundled from `overrides/LauncherGateHook.java` during the GitHub build. Download [v0.3 debug APK](releases/Lock-v0.3-launcher-debug.apk).
+
+This is a **compiled but device-untested** experiment, not a verified working or secure native App Lock. Test with a non-sensitive app. In LSPosed, scope One UI Home plus one test app (do not scope System Framework or SystemUI), then reboot. If the padlock is still missing, share **LSPosed module logs** containing `AppLockLab v0.3` so we can distinguish scope failures from Samsung's launcher runtime gate. The app protection mechanism is a best-effort activity guard and is not suitable for protecting private information.
