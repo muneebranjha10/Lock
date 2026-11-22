@@ -45,3 +45,29 @@ v0.4 replaces those compile-time stubs with correctly typed method signatures, v
 [Download v0.4 APK](releases/Lock-v0.4-api-debug.apk)
 
 For testing, disable/uninstall v0.3 (Actions debug keys are not stable between runs), install v0.4, enable its LSPosed scope for One UI Home and **one non-sensitive test app**, and reboot. Long-press that app; if the padlock remains absent, export **LSPosed Modules Logs** and search for `AppLockLab v0.4`. When the log does not show App Lock loading in the launcher, investigate LSPosed scope/restart before changing more Samsung hooks. Do not treat this as a reliable privacy or security product.
+
+## v0.5 — dark compact confirmation, App Info restoration, opt-in monitor
+
+**Build:** [v0.5 APK](releases/Lock-v0.5-monitor-debug.apk). GitHub Actions compiled this APK and confirmed that `AppMonitorService` is present in its AndroidManifest.
+
+This update addresses feedback from the Galaxy Store demonstration (2026-11-22):
+
+- The original Samsung launcher title-row **App Info** support method is now hooked alongside the native App Lock support gate. Both should be eligible for ordinary app icons; behavior must be verified on the phone.
+- The white full-screen Lock activity has been replaced with a compact, dark, rounded confirmation dialog styled to resemble the supplied reference.
+- The v0.4 app showed “App locked (scope required)” even if no process had the guard hook. v0.5 now requires an enabled **App Lock monitor** before the module claims to lock an app.
+- The monitor is an explicit opt-in Android AccessibilityService that inspects foreground **package names**, not text or screen contents (`canRetrieveWindowContent=false`). It launches the module’s BiometricPrompt/device credential Activity for locked apps without requiring every app to be in the LSPosed scope.
+- The launcher padlock still needs **One UI Home** selected in LSPosed. For experimental coverage of another app's activity UI through the separate LSPosed guard, add that app to scope manually as well.
+
+### Install and test
+
+1. Disable the old module and uninstall the previous GitHub Actions debug APK, because the debug signing key may change between builds.
+2. Install v0.5, enable One UI Home in the module's LSPosed scope, and reboot.
+3. Open **One UI App Lock Lab**, tap the top information card and enable **App Lock monitor** under Android Accessibility settings. The monitoring service has powerful system privileges; enable it only if you trust this experimental app.
+4. Long-press a **non-sensitive** test app, confirm that the **(i)** and **padlock** are both visible, then tap padlock → Lock. Authenticate with Samsung's real system fingerprint/PIN prompt.
+5. Reopen the test app and confirm the BiometricPrompt appears and cancelling returns home.
+
+### Important limitations
+
+This is **not** the native One UI 9.5 App Lock service or a proven privacy boundary. The accessibility monitor observes foreground application changes and may be too late to block content, and notifications, widgets, shortcuts, deep links and Recent Apps previews are not protected. Some device or Android versions may restrict AccessibilityService background activity launches. Do not use the module to secure banking, private chats or confidential files.
+
+There is no custom PIN collection: only Android BiometricPrompt and device credentials are used. If App Lock monitor cannot be enabled, no active all-app locking is available in this build. If App Info still disappears or a test app does not prompt, capture LSPosed Modules Logs and a short screen recording. 
