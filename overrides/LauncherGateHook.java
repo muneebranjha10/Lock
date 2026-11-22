@@ -30,6 +30,28 @@ final class LauncherGateHook {
                             }
                         }
                     });
+            // Samsung's native title has separate App Info and App Lock slots.
+            // Keep the original (i) button available alongside the padlock.
+            try {
+                XposedHelpers.findAndHookMethod(
+                        "com.honeyspace.ui.common.quickoption.GlobalOptionView", loader,
+                        "isAppInfoSupported", anchor, new XC_MethodHook() {
+                            @Override protected void afterHookedMethod(MethodHookParam param) {
+                                try {
+                                    Object item = param.args[0];
+                                    if (item != null && Boolean.TRUE.equals(
+                                            XposedHelpers.callMethod(item, "isApplicationItem"))) {
+                                        param.setResult(true);
+                                    }
+                                } catch (Throwable ex) {
+                                    XposedBridge.log("AppLockLab v0.5: app info eligibility: " + ex);
+                                }
+                            }
+                        });
+                XposedBridge.log("AppLockLab v0.5: original App Info button gate installed");
+            } catch (Throwable ex) {
+                XposedBridge.log("AppLockLab v0.5: App Info gate missing: " + ex);
+            }
             XposedBridge.log("AppLockLab v0.3: title-row hook installed");
         } catch (Throwable ex) {
             XposedBridge.log("AppLockLab v0.3: title-row hook NOT installed: " + ex);
