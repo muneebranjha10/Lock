@@ -18,6 +18,27 @@ jobs:
           cat parts/*.b64 | base64 -d > project.txz
           echo '75e2b75e5a93d0b49b86333e6fc2ed92e42a93ff4ac6a29d429032fc7ce6866b  project.txz' | sha256sum -c -
           tar -xJf project.txz
+      - name: Add LSPosed recommended scope (v0.2)
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          manifest = Path("app/src/main/AndroidManifest.xml")
+          source = manifest.read_text()
+          anchor = '<meta-data android:name="xposedmodule" android:value="true" />'
+          if anchor not in source:
+              raise SystemExit("Missing legacy Xposed module marker")
+          if 'android:name="xposedscope"' not in source:
+              source = source.replace(anchor, anchor + '\n        <meta-data android:name="xposedscope" android:value="com.sec.android.app.launcher" />')
+          manifest.write_text(source)
+          scope = Path("app/src/main/assets/scope.list")
+          scope.parent.mkdir(parents=True, exist_ok=True)
+          scope.write_text("com.sec.android.app.launcher\n")
+          gradle = Path("app/build.gradle")
+          src = gradle.read_text().replace("versionCode 1", "versionCode 2").replace("versionName '0.1.0-prototype'", "versionName '0.2.0-scopefix'")
+          gradle.write_text(src)
+          print("AppLock legacy scope metadata and launcher recommended scope added")
+          PY
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -31,9 +52,11 @@ jobs:
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install 'platforms;android-35' 'build-tools;35.0.0'
       - name: Build APK
         run: gradle :app:assembleDebug --no-daemon --stacktrace
+      - name: Check packaged scope file
+        run: unzip -l app/build/outputs/apk/debug/app-debug.apk | grep 'assets/scope.list'
       - uses: actions/upload-artifact@v4
         with:
-          name: Lock-Experimental-APK
+          name: Lock-ScopeFix-v0.2-APK
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
       - name: Publish direct APK
@@ -44,5 +67,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -f releases/Lock-experimental-debug.apk
-          git commit -m "Publish experimental debug APK [skip ci]" || exit 0
+          git commit -m "Publish v0.2 scope fix debug APK [skip ci]" || exit 0
           git push
