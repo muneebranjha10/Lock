@@ -60,6 +60,27 @@ jobs:
               raise SystemExit("Version upgrade failed")
           gradle.write_text(code)
           PY
+      - name: Fix verified Xposed API signature and add diagnostics (v0.4)
+        shell: bash
+        run: |
+          cp overrides/XposedHelpers.java xposedapi-stubs/src/main/java/de/robv/android/xposed/XposedHelpers.java
+          cp overrides/XC_MethodHook.java xposedapi-stubs/src/main/java/de/robv/android/xposed/XC_MethodHook.java
+          python3 - <<'PY'
+          from pathlib import Path
+          module = Path("app/src/main/java/dev/oneui/applock/hooks/AppLockModule.java")
+          code = module.read_text()
+          needle = '        if (MODULE.equals(p.packageName) || "android".equals(p.packageName)'
+          replacement = '        if (LAUNCHER.equals(p.packageName) || "com.whatsapp".equals(p.packageName))\n            XposedBridge.log("AppLockLab v0.4: module loaded in " + p.packageName);\n' + needle
+          if needle not in code:
+              raise SystemExit("AppLockModule diagnostic insertion point not found")
+          module.write_text(code.replace(needle, replacement, 1))
+          gradle = Path("app/build.gradle")
+          old = gradle.read_text()
+          code = old.replace("versionCode 3", "versionCode 4").replace("versionName '0.3.0-launcher-gate'", "versionName '0.4.0-xposed-api-fix'")
+          if code == old or "versionCode 4" not in code:
+              raise SystemExit("App version upgrade did not apply")
+          gradle.write_text(code)
+          PY
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -73,20 +94,26 @@ jobs:
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install 'platforms;android-35' 'build-tools;35.0.0'
       - name: Build APK
         run: gradle :app:assembleDebug --no-daemon --stacktrace
+      - name: Validate compiled Xposed API descriptor and scope
+        shell: bash
+        run: |
+          javap -classpath xposedapi-stubs/build/classes/java/main -s de.robv.android.xposed.XposedHelpers | grep -F 'XC_MethodHook$Unhook findAndHookMethod'
+          ! javap -classpath xposedapi-stubs/build/classes/java/main -s de.robv.android.xposed.XposedHelpers | grep -F 'void findAndHookMethod'
+          unzip -l app/build/outputs/apk/debug/app-debug.apk | grep 'assets/scope.list'
       - name: Check packaged scope file
         run: unzip -l app/build/outputs/apk/debug/app-debug.apk | grep 'assets/scope.list'
       - uses: actions/upload-artifact@v4
         with:
-          name: Lock-LauncherGate-v0.3-APK
+          name: Lock-XposedApiFix-v0.4-APK
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
       - name: Publish direct APK
         shell: bash
         run: |
           mkdir -p releases
-          cp app/build/outputs/apk/debug/app-debug.apk releases/Lock-v0.3-launcher-debug.apk
+          cp app/build/outputs/apk/debug/app-debug.apk releases/Lock-v0.4-api-debug.apk
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f releases/Lock-v0.3-launcher-debug.apk
-          git commit -m "Publish v0.3 launcher gate debug APK [skip ci]" || exit 0
+          git add -f releases/Lock-v0.4-api-debug.apk
+          git commit -m "Publish v0.4 Xposed API fix debug APK [skip ci]" || exit 0
           git push
