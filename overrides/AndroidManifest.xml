@@ -1,0 +1,53 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+    </queries>
+    <application
+        android:label="One UI App Lock Lab"
+        android:theme="@style/AppTheme"
+        android:allowBackup="false"
+        android:usesCleartextTraffic="false">
+        <meta-data android:name="xposedmodule" android:value="true" />
+        <meta-data android:name="xposedscope" android:value="com.sec.android.app.launcher" />
+        <meta-data android:name="xposeddescription" android:value="Experimental App Lock shortcut and opt-in monitor; not native Samsung security" />
+        <meta-data android:name="xposedminversion" android:value="93" />
+        <activity
+            android:name=".ui.MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".ui.LockToggleActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:theme="@style/AppLockDialogTheme" />
+        <activity
+            android:name=".ui.GuardAuthActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:theme="@style/AppTheme" />
+        <service
+            android:name=".ui.AppMonitorService"
+            android:label="App Lock monitor"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/applock_accessibility" />
+        </service>
+        <provider
+            android:name=".store.LockProvider"
+            android:authorities="dev.oneui.applock.state"
+            android:exported="true" />
+    </application>
+</manifest>
