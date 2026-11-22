@@ -26,6 +26,7 @@ import android.widget.Toast;
  * reference. True Samsung system dialogs cannot be imported from One UI 9.5.
  */
 public final class LockToggleActivity extends Activity {
+    public static final String EXTRA_PACKAGE = "target_package";
     private String target;
     private boolean currentlyLocked;
 
