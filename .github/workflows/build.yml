@@ -81,6 +81,90 @@ jobs:
               raise SystemExit("App version upgrade did not apply")
           gradle.write_text(code)
           PY
+      - name: Restore Samsung-style dialog and add opt-in enforcement (v0.5)
+        shell: bash
+        run: |
+          cp overrides/LauncherGateHook.java app/src/main/java/dev/oneui/applock/hooks/LauncherGateHook.java
+          cp overrides/LockToggleActivity.java app/src/main/java/dev/oneui/applock/ui/LockToggleActivity.java
+          cp overrides/AppMonitorService.java app/src/main/java/dev/oneui/applock/ui/AppMonitorService.java
+          python3 - <<'PY'
+          from pathlib import Path
+          from xml.etree import ElementTree
+          manifest = Path("app/src/main/AndroidManifest.xml")
+          source = manifest.read_text()
+          activity = '<activity\\n            android:name=".ui.LockToggleActivity"\\n            android:exported="true"'
+          # Match the actual format of the extracted prototype's manifest.
+          marker = 'android:name=".ui.LockToggleActivity"'
+          if marker not in source:
+              raise SystemExit("Missing LockToggleActivity declaration")
+          source = source.replace(marker, marker + '\\n            android:theme="@style/AppLockDialogTheme"', 1)
+          provider = '        <provider\\n'
+          if provider not in source:
+              raise SystemExit("Missing provider anchor")
+          service = '''        <service
+            android:name=".ui.AppMonitorService"
+            android:label="App Lock monitor"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data android:name="android.accessibilityservice"
+                android:resource="@xml/applock_accessibility" />
+        </service>
+'''
+          source = source.replace(provider, service + provider, 1)
+          manifest.write_text(source)
+          styles = Path("app/src/main/res/values/styles.xml")
+          xml = styles.read_text()
+          needle = '</resources>'
+          if needle not in xml: raise SystemExit("Bad styles.xml")
+          xml = xml.replace(needle, '''    <style name="AppLockDialogTheme" parent="android:style/Theme.Material.NoActionBar">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:backgroundDimEnabled">true</item>
+        <item name="android:windowDimAmount">0.61</item>
+        <item name="android:colorAccent">#FFFFFF</item>
+    </style>
+''' + needle)
+          styles.write_text(xml)
+          layout = Path("app/src/main/res/xml")
+          layout.mkdir(parents=True, exist_ok=True)
+          (layout / "applock_accessibility.xml").write_text('''<?xml version="1.0" encoding="utf-8"?>
+<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:accessibilityEventTypes="typeWindowStateChanged|typeWindowsChanged"
+    android:accessibilityFeedbackType="feedbackGeneric"
+    android:notificationTimeout="100"
+    android:canRetrieveWindowContent="false"
+    android:description="@string/app_lock_monitor_description" />
+''')
+          strings = Path("app/src/main/res/values/strings.xml")
+          strings.write_text('''<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_lock_monitor_description">Detects which app opens to prompt for authentication. Does not inspect screen content. Experimental protection, not a native Samsung security policy.</string>
+</resources>
+''')
+          main = Path("app/src/main/java/dev/oneui/applock/ui/MainActivity.java")
+          content = main.read_text()
+          content = content.replace(
+              "Choose apps to protect. After selecting an app, enable it in LSPosed Manager → One UI App Lock Lab → Scope, then force-stop and reopen that app.",
+              "Choose apps to protect. To enforce locks for apps outside LSPosed scope, tap this card and enable App Lock monitor in Android Accessibility settings. The monitor uses foreground app names only.")
+          content = content.replace("Locked · scope required", "Locked · monitor required")
+          marker = "        layout.addView(info, ip);"
+          if marker not in content: raise SystemExit("MainActivity insertion failed")
+          content = content.replace(marker, marker + '\\n        info.setOnClickListener(v -> startActivity(new Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS)));')
+          main.write_text(content)
+          gradle = Path("app/build.gradle")
+          content = gradle.read_text().replace("versionCode 4", "versionCode 5").replace("versionName '0.4.0-xposed-api-fix'", "versionName '0.5.0-dialog-monitor'")
+          if "versionCode 5" not in content: raise SystemExit("Version number not patched")
+          gradle.write_text(content)
+          ElementTree.parse(manifest)
+          ElementTree.parse(styles)
+          ElementTree.parse(strings)
+          ElementTree.parse(layout / "applock_accessibility.xml")
+          print("Restored App Info hook, dark dialog and explicit monitor component")
+          PY
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -104,16 +188,16 @@ jobs:
         run: unzip -l app/build/outputs/apk/debug/app-debug.apk | grep 'assets/scope.list'
       - uses: actions/upload-artifact@v4
         with:
-          name: Lock-XposedApiFix-v0.4-APK
+          name: Lock-Dialog-Monitor-v0.5-APK
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
       - name: Publish direct APK
         shell: bash
         run: |
           mkdir -p releases
-          cp app/build/outputs/apk/debug/app-debug.apk releases/Lock-v0.4-api-debug.apk
+          cp app/build/outputs/apk/debug/app-debug.apk releases/Lock-v0.5-monitor-debug.apk
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f releases/Lock-v0.4-api-debug.apk
-          git commit -m "Publish v0.4 Xposed API fix debug APK [skip ci]" || exit 0
+          git add -f releases/Lock-v0.5-monitor-debug.apk
+          git commit -m "Publish v0.5 dialog monitor debug APK [skip ci]" || exit 0
           git push
