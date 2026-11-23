@@ -71,3 +71,11 @@ This update addresses feedback from the Galaxy Store demonstration (2026-11-22):
 This is **not** the native One UI 9.5 App Lock service or a proven privacy boundary. The accessibility monitor observes foreground application changes and may be too late to block content, and notifications, widgets, shortcuts, deep links and Recent Apps previews are not protected. Some device or Android versions may restrict AccessibilityService background activity launches. Do not use the module to secure banking, private chats or confidential files.
 
 There is no custom PIN collection: only Android BiometricPrompt and device credentials are used. If App Lock monitor cannot be enabled, no active all-app locking is available in this build. If App Info still disappears or a test app does not prompt, capture LSPosed Modules Logs and a short screen recording. 
+
+## v0.6 — reference-focused compact dialog (UI only)
+
+This is an **appearance-only** iteration on the supplied One UI 9.5 reference screenshot. It reduces dialog font sizes, replaces heavy body text with regular-weight type, increases panel width, tightens line spacing/padding, and adjusts the dark panel radius and buttons. Launcher hooks, authentication and app monitoring are unchanged from v0.5.
+
+[Download the v0.6 experimental APK](releases/Lock-v0.6-dialog-debug.apk).
+
+**Why the text differs from the Samsung reference:** Native Samsung App Lock claims to remove widgets and hide notification previews. This experimental module does neither, so its popup says those items are *not hidden* rather than claiming nonexistent privacy protection. Similarly, the title says **Unlock** for an already-locked app and **Lock** for an unlocked app. The physical layout is intended to resemble the reference but is not verified pixel-identical on a user's device. A successfully compiled APK is not proof of real app-lock security.
