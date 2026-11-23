@@ -92,7 +92,7 @@ public final class LockToggleActivity extends Activity {
         // Keep the copy honest: unlike native One UI 9.5, this
         // experimental guard does NOT remove widgets or hide notifications.
         addParagraph(card,
-                "• Opening the app asks for fingerprint or screen lock.\\n"
+                "• Opening the app asks for fingerprint or screen lock.\n"
                 + "• Widgets and notification content are not hidden.", 7, 13f);
         addParagraph(card,
                 "However, your photos, videos, contacts, and other data will still "
