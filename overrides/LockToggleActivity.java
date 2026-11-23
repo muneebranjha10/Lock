@@ -39,18 +39,21 @@ public final class LockToggleActivity extends Activity {
         g.setCornerRadius(dp(radius));
         return g;
     }
-    private TextView text(String value, int size, int color, boolean bold) {
+    private TextView text(String value, float size, int color, int weight) {
         TextView t = new TextView(this);
         t.setText(value);
         t.setTextSize(size);
         t.setTextColor(color);
-        t.setIncludeFontPadding(true);
-        if (bold) t.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        // Explicit regular/medium weights avoid the heavy appearance of v0.5.
+        t.setTypeface(Typeface.create("sans-serif", weight, false));
+        t.setIncludeFontPadding(false);
+        t.setLetterSpacing(-0.012f);
         return t;
     }
-    private void addParagraph(LinearLayout parent, String value, int topDp, int size) {
-        TextView p = text(value, size, 0xFFE1E2E4, false);
-        p.setLineSpacing(dp(4), 1f);
+
+    private void addParagraph(LinearLayout parent, String value, int topDp, float size) {
+        TextView p = text(value, size, 0xFFE2E2E2, 400);
+        p.setLineSpacing(dp(2), 1.0f);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
         lp.topMargin = dp(topDp);
         parent.addView(p, lp);
@@ -71,43 +74,48 @@ public final class LockToggleActivity extends Activity {
                     getPackageManager().getApplicationInfo(target, 0)));
         } catch (Exception ignored) { }
 
+        // Reference geometry: nearly edge-to-edge compact dark panel,
+        // Samsung-style regular typography, tight sections, soft rounded corners.
         LinearLayout card = new LinearLayout(this);
         card.setOrientation(LinearLayout.VERTICAL);
-        card.setBackground(rounded(0xFF232623, 30));
-        card.setPadding(dp(27), dp(30), dp(27), dp(18));
+        card.setBackground(rounded(0xFF202321, 30));
+        card.setPadding(dp(21), dp(25), dp(21), dp(13));
 
         TextView title = text((currentlyLocked ? "Unlock " : "Lock ") + label,
-                23, Color.WHITE, true);
+                18f, 0xFFF5F5F5, 500);
         card.addView(title);
         addParagraph(card,
                 "To open a locked app, you need to verify your identity with biometrics "
-                + "or your screen lock PIN, pattern, or password.", 6, 15);
-        addParagraph(card, "When this app is locked:", 18, 15);
+                + "or your screen lock PIN, pattern, or password.", 5, 13f);
+        addParagraph(card, "When this app is locked:", 11, 13f);
+
+        // Keep the copy honest: unlike native One UI 9.5, this
+        // experimental guard does NOT remove widgets or hide notifications.
         addParagraph(card,
-                "• Opening the app requires authentication when the App Lock monitor is enabled.\n"
-                + "• Widgets, shortcuts and notification content are not hidden by this module.",
-                10, 15);
+                "• Opening the app asks for fingerprint or screen lock.\\n"
+                + "• Widgets and notification content are not hidden.", 7, 13f);
         addParagraph(card,
-                "Other apps that already have permission may still access your photos, videos, "
-                + "contacts and other data.", 18, 15);
+                "However, your photos, videos, contacts, and other data will still "
+                + "be accessible to apps that already have access.", 12, 13f);
 
         LinearLayout buttons = new LinearLayout(this);
         buttons.setOrientation(LinearLayout.HORIZONTAL);
         buttons.setGravity(Gravity.CENTER_VERTICAL);
-        LinearLayout.LayoutParams bp = new LinearLayout.LayoutParams(-1, dp(57));
-        bp.topMargin = dp(11);
+        LinearLayout.LayoutParams bp = new LinearLayout.LayoutParams(-1, dp(46));
+        bp.topMargin = dp(8);
         card.addView(buttons, bp);
-        TextView cancel = text("Cancel", 18, 0xFFFFFFFF, false);
+
+        TextView cancel = text("Cancel", 16f, 0xFFF7F7F7, 500);
         cancel.setGravity(Gravity.CENTER);
         buttons.addView(cancel, new LinearLayout.LayoutParams(0, -1, 1));
         cancel.setOnClickListener(v -> finish());
 
         TextView separator = new TextView(this);
-        separator.setBackgroundColor(0xFF444744);
-        buttons.addView(separator, new LinearLayout.LayoutParams(dp(1), dp(25)));
+        separator.setBackgroundColor(0xFF414441);
+        buttons.addView(separator, new LinearLayout.LayoutParams(dp(1), dp(23)));
 
         TextView confirm = text(currentlyLocked ? "Unlock" : "Lock",
-                18, 0xFFFFFFFF, false);
+                16f, 0xFFF7F7F7, 500);
         confirm.setGravity(Gravity.CENTER);
         buttons.addView(confirm, new LinearLayout.LayoutParams(0, -1, 1));
         confirm.setOnClickListener(v -> verifyAndToggle());
@@ -117,10 +125,10 @@ public final class LockToggleActivity extends Activity {
         window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
         window.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
         WindowManager.LayoutParams wp = window.getAttributes();
-        wp.dimAmount = 0.61f;
+        wp.dimAmount = 0.56f;
         wp.gravity = Gravity.CENTER;
         window.setAttributes(wp);
-        int width = Math.min(getResources().getDisplayMetrics().widthPixels - dp(40), dp(470));
+        int width = Math.min(getResources().getDisplayMetrics().widthPixels - dp(20), dp(470));
         window.setLayout(width, WindowManager.LayoutParams.WRAP_CONTENT);
     }
 
