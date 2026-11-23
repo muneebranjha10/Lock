@@ -45,7 +45,7 @@ public final class LockToggleActivity extends Activity {
         t.setTextSize(size);
         t.setTextColor(color);
         // Explicit regular/medium weights avoid the heavy appearance of v0.5.
-        t.setTypeface(Typeface.create("sans-serif", weight, false));
+        t.setTypeface(Typeface.create(Typeface.create("sans-serif", Typeface.NORMAL), weight, false));
         t.setIncludeFontPadding(false);
         t.setLetterSpacing(-0.012f);
         return t;
