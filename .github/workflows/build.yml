@@ -113,6 +113,29 @@ jobs:
               ElementTree.parse(app / "src/main" / file)
           print("Validated v0.5 manifest, dark dialog, monitor and app list")
           PY
+      - name: Apply compact Samsung reference dialog only (v0.6)
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          gradle = Path("app/build.gradle")
+          before = gradle.read_text()
+          after = before.replace("versionCode 5", "versionCode 6").replace(
+              "versionName '0.5.0-dialog-monitor'", "versionName '0.6.0-dialog-reference'")
+          if after == before or "versionCode 6" not in after:
+              raise SystemExit("Failed to bump UI-only build version")
+          gradle.write_text(after)
+          ui = Path("app/src/main/java/dev/oneui/applock/ui/LockToggleActivity.java").read_text()
+          required = [
+              'dp(21), dp(25), dp(21), dp(13)',
+              '18f, 0xFFF5F5F5, 500',
+              'int width = Math.min(getResources().getDisplayMetrics().widthPixels - dp(20), dp(470));',
+          ]
+          for snippet in required:
+              if snippet not in ui:
+                  raise SystemExit("Missing required compact dialog characteristic: " + snippet)
+          print("v0.6 UI-only patch verified")
+          PY
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -139,16 +162,16 @@ jobs:
         run: unzip -l app/build/outputs/apk/debug/app-debug.apk | grep 'assets/scope.list'
       - uses: actions/upload-artifact@v4
         with:
-          name: Lock-Dialog-Monitor-v0.5-APK
+          name: Lock-Compact-Dialog-v0.6-APK
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
       - name: Publish direct APK
         shell: bash
         run: |
           mkdir -p releases
-          cp app/build/outputs/apk/debug/app-debug.apk releases/Lock-v0.5-monitor-debug.apk
+          cp app/build/outputs/apk/debug/app-debug.apk releases/Lock-v0.6-dialog-debug.apk
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f releases/Lock-v0.5-monitor-debug.apk
-          git commit -m "Publish v0.5 dialog monitor debug APK [skip ci]" || exit 0
+          git add -f releases/Lock-v0.6-dialog-debug.apk
+          git commit -m "Publish v0.6 compact dialog debug APK [skip ci]" || exit 0
           git push
